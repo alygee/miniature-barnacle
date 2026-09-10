@@ -285,8 +285,10 @@ vitest, без сети:
   QueryEscape.
 - `template`: сообщения по умолчанию (эталонные строки), все три шаблона из референсного
   `.drone.yml` (эталонный результат, включая время сборки), экранирование `_`, unescape.
-- `markdown`: табличные кейсы из `td/test/message_entities.cpp` (`parse_markdown`) — успешные
-  1:1, ошибочные — по правилу §7.1; эмодзи и кириллица в смещениях; `\_` внутри
+- `markdown`: собственные табличные кейсы по алгоритму tdlib (готовых нет: `check_parse_markdown`
+  в `td/test/message_entities.cpp` тестирует `parse_markdown_v2`); нормализация URL сверена с
+  кейсами `[…](telegram.org)` оттуда же (`http://telegram.org/`, `https://telegram.dog/?`, `as` —
+  не ссылка); эмодзи и кириллица в смещениях; `\_` внутри
   Italic/Bold/Code/Pre, текста ссылки и URL → `_`.
 - `redact`.
 
