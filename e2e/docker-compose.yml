@@ -1,0 +1,23 @@
+# Real send through tg-ws-proxy. Run via `npm run e2e` (e2e/run.sh checks the required variables).
+services:
+  tg-ws-proxy:
+    build: https://github.com/Flowseal/tg-ws-proxy.git
+    environment:
+      TG_WS_PROXY_SECRET: ${E2E_PROXY_SECRET:-0123456789abcdef0123456789abcdef}
+
+  notify:
+    build: ..
+    depends_on:
+      - tg-ws-proxy
+    environment:
+      PLUGIN_TOKEN: ${E2E_TOKEN:?}
+      PLUGIN_TO: ${E2E_TO:?}
+      PLUGIN_API_ID: ${E2E_API_ID:?}
+      PLUGIN_API_HASH: ${E2E_API_HASH:?}
+      PLUGIN_PROXY_HOST: tg-ws-proxy
+      PLUGIN_PROXY_SECRET: ${E2E_PROXY_SECRET:-0123456789abcdef0123456789abcdef}
+      PLUGIN_MESSAGE_THREAD_ID: ${E2E_THREAD_ID:-}
+      PLUGIN_MESSAGE: "🧪 e2e [#{{build.number}}]({{build.link}}): {{commit.message}}"
+      DRONE_BUILD_NUMBER: "1"
+      DRONE_BUILD_LINK: https://example.com/builds/1
+      DRONE_COMMIT_MESSAGE: e2e_check *ok*
