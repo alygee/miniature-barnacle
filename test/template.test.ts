@@ -4,6 +4,7 @@ import { type CiContext, loadCiContext } from "../src/ci-context.js";
 import type { Format } from "../src/config.js";
 import { formatMessage } from "../src/format.js";
 import {
+  defaultRenderDeps,
   defaultMessage,
   escapeMarkdownOne,
   escapeOutsideMustaches,
@@ -137,6 +138,24 @@ describe("reference .drone.yml templates", () => {
       ["MessageEntityTextUrl", expectedText.indexOf("#42"), 3, "https://drone.example.com/org/web_app/42"],
       ["MessageEntityTextUrl", expectedText.indexOf("fix_login"), 18, "https://git.example.com/org/web_app/commit/abc"],
     ]);
+  });
+});
+
+describe("env helpers", () => {
+  const env = {
+    PLUGIN_TOKEN: "tok", PLUGIN_API_HASH: "hash", PLUGIN_PROXY_SECRET: "sec", PLUGIN_SESSION: "sess",
+    TELEGRAM_TOKEN: "t2", INPUT_SESSION: "s2", DRONE_BUILD_NUMBER: "42",
+  };
+  const renderWith = async (message: string) =>
+    (await renderMessage(settings({ message, format: "html" }), ci, defaultRenderDeps(env))).text;
+
+  it("hides secret-bearing settings but keeps normal CI variables", async () => {
+    expect(await renderWith('[{{env "PLUGIN_TOKEN"}}|{{env "TELEGRAM_TOKEN"}}|{{env "INPUT_SESSION"}}|{{expandenv "$PLUGIN_API_HASH ${PLUGIN_PROXY_SECRET} $PLUGIN_SESSION"}}]')).toBe("[|||  ]");
+    expect(await renderWith('{{env "DRONE_BUILD_NUMBER"}} {{expandenv "$DRONE_BUILD_NUMBER"}}')).toBe("42 42");
+  });
+
+  it("ignores inherited properties", async () => {
+    expect(await renderWith('[{{env "constructor"}}|{{expandenv "$toString"}}]')).toBe("[|]");
   });
 });
 

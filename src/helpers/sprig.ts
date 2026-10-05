@@ -1,5 +1,10 @@
 import type Handlebars from "handlebars";
 import type { Env } from "../env.js";
+
+/** Own properties only, so `env "constructor"` is empty rather than Object's constructor. */
+function lookupEnv(env: Env, name: string): string {
+  return Object.hasOwn(env, name) ? (env[name] ?? "") : "";
+}
 import { plainHelper } from "./drone.js";
 import {
   goDuration,
@@ -158,10 +163,10 @@ export function registerSprigHelpers(hb: HandlebarsInstance, deps: SprigDeps): v
     // other
     b64enc: (s) => Buffer.from(goString(s), "utf8").toString("base64"),
     b64dec: (s) => Buffer.from(goString(s), "base64").toString("utf8"),
-    env: (name) => deps.env[goString(name)] ?? "",
+    env: (name) => lookupEnv(deps.env, goString(name)),
     expandenv: (s) =>
       goString(s).replace(/\$\{([^}]*)\}|\$([A-Za-z0-9_]+)/g, (_match, braced: string | undefined, bare: string | undefined) =>
-        deps.env[braced ?? bare ?? ""] ?? "",
+        lookupEnv(deps.env, braced ?? bare ?? ""),
       ),
   };
 

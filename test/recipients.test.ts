@@ -27,8 +27,8 @@ describe("parseTo", () => {
   });
   it("skips invalid recipients with a warning", () => {
     const warn = vi.fn();
-    expect(parseTo(["中文ID", "abc", "@ab", ":", "12"], "", false, warn)).toEqual(["12"]);
-    expect(warn).toHaveBeenCalledTimes(4);
+    expect(parseTo(["中文ID", "abc", "@ab", "@abcd", ":", "12"], "", false, warn)).toEqual(["12"]);
+    expect(warn).toHaveBeenCalledTimes(5);
     expect(warn).toHaveBeenCalledWith('skipping recipient "中文ID": not a numeric id or @username');
   });
 });

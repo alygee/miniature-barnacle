@@ -8,7 +8,7 @@ import type { SendOptions, TelegramGateway } from "../src/telegram.js";
 const HEX = "0123456789abcdef0123456789abcdef";
 const baseEnv = {
   PLUGIN_TOKEN: "123:SECRET",
-  PLUGIN_TO: "1,@team",
+  PLUGIN_TO: "1,@teamx",
   PLUGIN_API_ID: "1",
   PLUGIN_API_HASH: "hash0123",
   PLUGIN_MESSAGE: "*hi* {{build.number}}",
@@ -61,9 +61,9 @@ describe("run (send)", () => {
     expect(await run([], deps)).toBe(0);
     expect(sent).toEqual([
       { peer: "1", text: "hi 42", options: { linkPreview: true, silent: false, threadId: undefined } },
-      { peer: "@team", text: "hi 42", options: { linkPreview: true, silent: false, threadId: undefined } },
+      { peer: "@teamx", text: "hi 42", options: { linkPreview: true, silent: false, threadId: undefined } },
     ]);
-    expect(out).toEqual(["sent to 1 (message id 1)", "sent to @team (message id 2)"]);
+    expect(out).toEqual(["sent to 1 (message id 1)", "sent to @teamx (message id 2)"]);
     expect(err).toEqual([]);
     expect(deps.waitForPort).not.toHaveBeenCalled();
     expect(gateway.close).toHaveBeenCalledOnce();
@@ -100,7 +100,7 @@ describe("run (send)", () => {
     const { deps, out, err } = setup(baseEnv, gateway);
     expect(await run([], deps)).toBe(1);
     expect(err).toEqual(["failed to send to 1: bot <redacted> rejected"]);
-    expect(out).toEqual(["sent to @team (message id 7)"]);
+    expect(out).toEqual(["sent to @teamx (message id 7)"]);
     expect(gateway.close).toHaveBeenCalledOnce();
   });
 
@@ -134,6 +134,18 @@ describe("run (send)", () => {
     expect(await run([], deps)).toBe(1);
     expect(err).toEqual(["error: timed out after 1s during login"]);
   });
+
+  it("closes a gateway that connects after the deadline", async () => {
+    const { gateway } = fakeGateway();
+    const { deps, err } = setup({ ...baseEnv, PLUGIN_TIMEOUT: "1" }, gateway);
+    let release!: () => void;
+    deps.connect = vi.fn(() => new Promise<TelegramGateway>((resolve) => (release = () => resolve(gateway))));
+    expect(await run([], deps)).toBe(1);
+    expect(err).toEqual(["error: timed out after 1s during login"]);
+    release();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(gateway.close).toHaveBeenCalled();
+  });
 });
 
 describe("run (session)", () => {
@@ -157,7 +169,10 @@ describe("describeError", () => {
   it("explains FLOOD_WAIT", () => {
     const flood = Object.assign(Object.create(errors.FloodWaitError.prototype), { seconds: 120 });
     expect(describeError(flood)).toContain("FLOOD_WAIT of 120s");
-    expect(describeError(flood)).toContain('"session"');
+    const roomy = { timeoutSec: 600, remainingMs: () => 600_000 };
+    expect(describeError(flood, roomy)).toBe("Telegram FLOOD_WAIT of 120s");
+    const tight = { timeoutSec: 10, remainingMs: () => 10_000 };
+    expect(describeError(flood, tight)).toContain('"session"');
   });
   it("uses the message of other errors", () => {
     expect(describeError(new Error("boom"))).toBe("boom");

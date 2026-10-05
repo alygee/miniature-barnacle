@@ -15,9 +15,17 @@ export interface RenderDeps {
   fetchText: (url: string) => Promise<string>;
 }
 
+// SECURITY BOUNDARY: templates are editable by anyone with push access, while the CI server injects the
+// secrets, so the helpers `env`/`expandenv` must never see the plugin's own secret-bearing settings.
+const SECRET_SETTING = /^(PLUGIN_|TELEGRAM_|INPUT_)(TOKEN|API_HASH|PROXY_SECRET|SESSION)$/i;
+
+function withoutSecrets(env: Env): Env {
+  return Object.fromEntries(Object.entries(env).filter(([key]) => !SECRET_SETTING.test(key)));
+}
+
 export function defaultRenderDeps(env: Env): RenderDeps {
   return {
-    env,
+    env: withoutSecrets(env),
     now: () => new Date(),
     readText: (path) => readFile(path, "utf8"),
     fetchText: async (url) => {

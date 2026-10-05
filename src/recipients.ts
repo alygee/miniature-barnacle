@@ -1,5 +1,5 @@
 const NUMERIC_ID = /^[+-]?\d+$/;
-const USERNAME = /^@[A-Za-z0-9_]{4,32}$/;
+const USERNAME = /^@[A-Za-z0-9_]{5,32}$/;
 
 /**
  * Port of drone-telegram parseTo: plain ids always receive the message, `id:email` entries only when

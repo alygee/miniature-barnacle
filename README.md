@@ -140,7 +140,7 @@ Handlebars с правилами raymond (как в drone-telegram): поле д
 `add add1 sub mul div mod max min floor ceil round`,
 `trim trimAll trimPrefix trimSuffix upper lower title replace contains hasPrefix hasSuffix trunc abbrev substr repeat quote squote nospace indent nindent plural cat toString atoi int int64`,
 `default empty coalesce ternary`, `now date dateInZone unixEpoch ago`, `regexMatch regexFind regexReplaceAll`,
-`b64enc b64dec env expandenv`. Прочие функции sprig дают ошибку `helper "X" is not supported`.
+`b64enc b64dec env expandenv`. Прочие функции sprig, вызванные с аргументами, завершают шаг ошибкой `helper "X" is not supported (sprig subset, see README)`; вызванные без аргументов (например `{{uuidv4}}`) — отображаются пустой строкой, так как Handlebars не отличает такой вызов от отсутствующего поля.
 
 Пример: `{{ div (sub build.finished build.started) 60 }} мин {{ mod (sub build.finished build.started) 60 }} с`.
 

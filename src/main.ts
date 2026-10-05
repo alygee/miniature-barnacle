@@ -23,11 +23,15 @@ type Stage = "render" | "proxy" | "login" | "send";
 interface RunState {
   stage: Stage;
   gateway?: TelegramGateway;
+  aborted?: boolean;
 }
 
-export function describeError(error: unknown): string {
+export function describeError(error: unknown, deadline?: Deadline): string {
   if (error instanceof errors.FloodWaitError) {
-    return `Telegram FLOOD_WAIT of ${error.seconds}s exceeds the remaining time; set the "session" setting to avoid logging the bot in on every run`;
+    if (deadline !== undefined && error.seconds * 1000 > deadline.remainingMs()) {
+      return `Telegram FLOOD_WAIT of ${error.seconds}s exceeds the remaining time; set the "session" setting to avoid logging the bot in on every run`;
+    }
+    return `Telegram FLOOD_WAIT of ${error.seconds}s`;
   }
   if (error instanceof Error) return error.message;
   return String(error);
@@ -47,10 +51,10 @@ const DEADLINE_GRACE_MS = 1000;
 async function withDeadline<T>(deadline: Deadline, state: RunState, work: () => Promise<T>): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
   const timeout = new Promise<never>((_resolve, reject) => {
-    timer = setTimeout(
-      () => reject(new Error(`timed out after ${deadline.timeoutSec}s during ${state.stage}`)),
-      deadline.remainingMs() + DEADLINE_GRACE_MS,
-    );
+    timer = setTimeout(() => {
+      state.aborted = true;
+      reject(new Error(`timed out after ${deadline.timeoutSec}s during ${state.stage}`));
+    }, deadline.remainingMs() + DEADLINE_GRACE_MS);
   });
   try {
     return await Promise.race([work(), timeout]);
@@ -87,7 +91,7 @@ async function send(config: Config, deps: MainDeps, deadline: Deadline, state: R
       deps.stdout(`sent to ${peer} (message id ${id})`);
     } catch (error) {
       failed++;
-      deps.stderr(redact(`failed to send to ${peer}: ${describeError(error)}`));
+      deps.stderr(redact(`failed to send to ${peer}: ${describeError(error, deadline)}`));
     }
   }
   return failed > 0 ? 1 : 0;
@@ -99,29 +103,37 @@ async function login(config: Config, deps: MainDeps, deadline: Deadline, state: 
     await deps.waitForPort(config.proxy.host, config.proxy.port, deadline);
   }
   state.stage = "login";
-  state.gateway = await deps.connect(config, deadline);
-  return state.gateway;
+  const gateway = await deps.connect(config, deadline);
+  if (state.aborted) {
+    // The deadline already won the race and `run` has finished its cleanup: close the late arrival here.
+    await gateway.close().catch(() => {});
+    throw new Error(`timed out after ${config.timeoutSec}s during login`);
+  }
+  state.gateway = gateway;
+  return gateway;
 }
 
 /** Returns the process exit code: 0 on success, 1 on any failure (spec §9). */
 export async function run(argv: readonly string[], deps: MainDeps): Promise<number> {
   const state: RunState = { stage: "render" };
   let redact: Redactor = (text) => text;
+  let deadline: Deadline | undefined;
   try {
     const mode = parseMode(argv);
     const config = loadConfig(deps.env, mode);
     redact = makeRedactor([config.token, config.apiHash, config.proxy?.secret, config.session]);
-    const deadline = createDeadline(config.timeoutSec);
-    return await withDeadline(deadline, state, async () => {
+    const runDeadline = createDeadline(config.timeoutSec);
+    deadline = runDeadline;
+    return await withDeadline(runDeadline, state, async () => {
       if (mode === "session") {
-        const gateway = await login(config, deps, deadline, state);
+        const gateway = await login(config, deps, runDeadline, state);
         deps.stdout(gateway.exportSession());
         return 0;
       }
-      return send(config, deps, deadline, state, redact);
+      return send(config, deps, runDeadline, state, redact);
     });
   } catch (error) {
-    deps.stderr(redact(`error: ${describeError(error)}`));
+    deps.stderr(redact(`error: ${describeError(error, deadline)}`));
     return 1;
   } finally {
     await state.gateway?.close().catch(() => {});
