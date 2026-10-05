@@ -1,0 +1,88 @@
+# Notify steps of a Drone pipeline migrated from appleboy/drone-telegram to drone-telegram-mtproto.
+# Secrets: TG_BOT_TOKEN, TG_BOT_CHATID, TG_API_ID, TG_API_HASH (my.telegram.org),
+#          TG_PROXY_SECRET (32 hex chars: `openssl rand -hex 16`).
+kind: pipeline
+type: docker
+name: Frontend CI/CD
+
+trigger:
+  event:
+    - push
+  branch:
+    - dev
+
+# tg-ws-proxy runs next to the steps for the whole pipeline and is reachable by its name.
+services:
+  - name: tg-ws-proxy
+    image: registry.example.com/tg-ws-proxy:latest
+    environment:
+      TG_WS_PROXY_SECRET:
+        from_secret: TG_PROXY_SECRET
+
+# Merge only the settings map: `<<:` is shallow, so a step-level `settings:` would replace
+# a whole merged step template including token and to.
+tg-settings: &tg-settings
+  token:
+    from_secret: TG_BOT_TOKEN
+  to:
+    from_secret: TG_BOT_CHATID
+  api_id:
+    from_secret: TG_API_ID
+  api_hash:
+    from_secret: TG_API_HASH
+  proxy_host: tg-ws-proxy
+  proxy_secret:
+    from_secret: TG_PROXY_SECRET
+
+steps:
+  - name: notify-prepare
+    image: registry.example.com/drone-telegram-mtproto:1
+    failure: ignore
+    settings:
+      <<: *tg-settings
+      message: |
+        🚀 Сборка [#{{build.number}}]({{build.link}}) запущена
+        ○ Репозиторий: {{repo.name}}
+        ○ Ветка: {{commit.branch}}
+        ○ Коммит: [{{commit.message}}]({{commit.link}})
+        ○ Инициатор: {{commit.author}}
+
+  - name: build
+    image: node:22-alpine
+    commands:
+      - npm ci
+      - npm run build
+
+  - name: notify-build-success
+    image: registry.example.com/drone-telegram-mtproto:1
+    failure: ignore
+    depends_on:
+      - build
+    when:
+      status: [success]
+    settings:
+      <<: *tg-settings
+      message: |
+        ✅ Сборка [#{{build.number}}]({{build.link}}) прошла успешно
+        ○ Репозиторий: {{repo.name}}
+        ○ Ветка: {{commit.branch}}
+        ○ Коммит: [{{commit.message}}]({{commit.link}})
+        ○ Инициатор: {{commit.author}}
+        ○ Время сборки: {{ div (sub build.finished build.started) 60 }} минут {{ mod (sub build.finished build.started) 60 }} секунд
+
+  - name: notify-build-failure
+    image: registry.example.com/drone-telegram-mtproto:1
+    failure: ignore
+    depends_on:
+      - build
+    when:
+      status: [failure]
+    settings:
+      <<: *tg-settings
+      message: |
+        ❌ Сборка [#{{build.number}}]({{build.link}}) завершилась с ошибкой
+        ○ Репозиторий: {{repo.name}}
+        ○ Ветка: {{commit.branch}}
+        ○ Коммит: [{{commit.message}}]({{commit.link}})
+        ○ Инициатор: {{commit.author}}
+        ○ Время сборки: {{ div (sub build.finished build.started) 60 }} минут {{ mod (sub build.finished build.started) 60 }} секунд

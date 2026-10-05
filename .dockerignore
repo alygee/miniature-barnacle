@@ -1,0 +1,9 @@
+node_modules
+dist
+.git
+docs
+test
+e2e
+examples
+.drone.yml
+*.md

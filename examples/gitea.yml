@@ -1,0 +1,37 @@
+# Gitea/Forgejo Actions: .gitea/workflows/build.yml (or .forgejo/workflows/build.yml).
+# Secrets: TG_BOT_TOKEN, TG_BOT_CHATID, TG_API_ID, TG_API_HASH, TG_PROXY_SECRET.
+name: build
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      tg-ws-proxy:
+        image: registry.example.com/tg-ws-proxy:latest
+        env:
+          TG_WS_PROXY_SECRET: ${{ secrets.TG_PROXY_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: build
+        run: npm ci && npm run build
+
+      - name: notify
+        if: always()
+        uses: docker://registry.example.com/drone-telegram-mtproto:1
+        with:
+          token: ${{ secrets.TG_BOT_TOKEN }}
+          to: ${{ secrets.TG_BOT_CHATID }}
+          api_id: ${{ secrets.TG_API_ID }}
+          api_hash: ${{ secrets.TG_API_HASH }}
+          proxy_host: tg-ws-proxy
+          proxy_secret: ${{ secrets.TG_PROXY_SECRET }}
+          template_vars: '{"status": "${{ job.status }}"}'
+          message: |
+            {{#success tpl.status}}✅{{else}}❌{{/success}} [{{repo.fullName}} #{{build.number}}]({{build.link}}): {{tpl.status}}
+            ○ Ветка: {{commit.branch}}
+            ○ Коммит: [{{commit.sha}}]({{commit.link}})
+            ○ Инициатор: {{repo.namespace}}
