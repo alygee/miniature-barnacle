@@ -1,0 +1,25 @@
+{
+  "name": "drone-telegram-mtproto",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "e2e": "sh e2e/run.sh"
+  },
+  "dependencies": {
+    "entities": "8.1.0",
+    "handlebars": "4.7.9",
+    "teleproto": "1.229.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "7.0.2",
+    "vitest": "5.0.0"
+  }
+}
