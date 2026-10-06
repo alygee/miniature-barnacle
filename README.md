@@ -174,6 +174,12 @@ Handlebars с правилами raymond (как в drone-telegram): поле д
 | Медиа, location/venue, socks5, MarkdownV2 | есть | нет (ошибка конфигурации) |
 | Голые env-имена (`FORMAT`, `DEBUG`, `PHOTO`) | читаются | только с префиксами |
 
+## Документация
+
+- [operations.md](docs/operations.md) — разбор ошибок, дата-центры tg-ws-proxy, режим `session`, чек-лист «уведомление не пришло»
+- [architecture.md](docs/architecture.md) — карта модулей, ключевые решения, как расширять
+- [docs/](docs/) — индекс
+
 ## Разработка
 
 ```sh
