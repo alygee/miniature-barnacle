@@ -1,3 +1,5 @@
 .worktrees/
 node_modules/
 dist/
+.obsidian/
+.drone.yml

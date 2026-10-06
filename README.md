@@ -1,18 +1,14 @@
 # drone-telegram-mtproto
 
-Замена [appleboy/drone-telegram](https://github.com/appleboy/drone-telegram) для CI-уведомлений в Telegram,
-которая ходит не в Bot API (`api.telegram.org`), а по MTProto — через
-[tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy), который туннелирует MTProto в WebSocket к `*.web.telegram.org`.
+Замена [appleboy/drone-telegram](https://github.com/appleboy/drone-telegram) для CI-уведомлений в Telegram, которая ходит не в Bot API (`api.telegram.org`), а по MTProto — через [tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy), который туннелирует MTProto в WebSocket к `*.web.telegram.org`.
 
 ```
 шаг пайплайна ──MTProto (MTProxy)──▶ сервис tg-ws-proxy ──WSS──▶ Telegram
 ```
 
-Шаблоны сообщений, переменные (`{{build.number}}`, `{{commit.message}}` …), хелперы и параметры — как у
-drone-telegram. Отличия собраны в [таблице](#отличия-от-drone-telegram).
+Шаблоны сообщений, переменные (`{{build.number}}`, `{{commit.message}}` …), хелперы и параметры — как у drone-telegram. Отличия собраны в [таблице](#отличия-от-drone-telegram).
 
-Версия 1 отправляет только текст: фото, документы, стикеры, геолокация и `socks5` не поддерживаются
-(указание такого параметра — ошибка конфигурации).
+Версия 1 отправляет только текст: фото, документы, стикеры, геолокация и `socks5` не поддерживаются (указание такого параметра — ошибка конфигурации).
 
 ## Что понадобится
 
@@ -61,23 +57,18 @@ steps:
         ✅ Сборка [#{{build.number}}]({{build.link}}) прошла успешно
 ```
 
-> **Осторожно с `<<:`.** Слияние YAML неглубокое: если шаблон шага содержит `settings`, а шаг задаёт свой
-> `settings:`, то шаблонный `settings` (с `token` и `to`) целиком заменяется. Сливайте именно карту
-> настроек, как выше.
+> **Осторожно с `<<:`.** Слияние YAML неглубокое: если шаблон шага содержит `settings`, а шаг задаёт свой `settings:`, то шаблонный `settings` (с `token` и `to`) целиком заменяется. Сливайте именно карту настроек, как выше.
 
-Плагин ждёт, пока сервис `tg-ws-proxy` начнёт принимать соединения (до `timeout` секунд), так что
-отдельный шаг ожидания не нужен.
+Плагин ждёт, пока сервис `tg-ws-proxy` начнёт принимать соединения (до `timeout` секунд), так что отдельный шаг ожидания не нужен.
 
 ## Gitea / Forgejo Actions
 
 Пример — [`examples/gitea.yml`](examples/gitea.yml): `services: tg-ws-proxy` в job и шаг
-`uses: docker://registry.example.com/drone-telegram-mtproto:1` с параметрами в `with:`. Статус job
-в Actions нет в переменных окружения — передайте его через `template_vars: '{"status": "${{ job.status }}"}'`.
+`uses: docker://registry.example.com/drone-telegram-mtproto:1` с параметрами в `with:`. Статус job в Actions нет в переменных окружения — передайте его через `template_vars: '{"status": "${{ job.status }}"}'`.
 
 ## Параметры
 
-Каждый параметр читается из `PLUGIN_<ИМЯ>`, `TELEGRAM_<ИМЯ>` или `INPUT_<ИМЯ>` (первое непустое):
-`settings.api_id` в Drone → `PLUGIN_API_ID`, `with.api_id` в Actions → `INPUT_API_ID`.
+Каждый параметр читается из `PLUGIN_<ИМЯ>`, `TELEGRAM_<ИМЯ>` или `INPUT_<ИМЯ>` (первое непустое): `settings.api_id` в Drone → `PLUGIN_API_ID`, `with.api_id` в Actions → `INPUT_API_ID`.
 
 | Параметр | По умолчанию | Описание |
 |---|---|---|
@@ -122,8 +113,7 @@ docker run --rm -e PLUGIN_TOKEN=… -e PLUGIN_API_ID=… -e PLUGIN_API_HASH=… 
 
 ## Шаблоны
 
-Handlebars с правилами raymond (как в drone-telegram): поле доступно по Go-имени или с маленькой первой буквой —
-`{{repo.FullName}}` и `{{repo.fullName}}` работают, `{{repo.fullname}}` — пусто.
+Handlebars с правилами raymond (как в drone-telegram): поле доступно по Go-имени или с маленькой первой буквой — `{{repo.FullName}}` и `{{repo.fullName}}` работают, `{{repo.fullname}}` — пусто.
 
 | Объект | Поля |
 |---|---|
@@ -140,22 +130,20 @@ Handlebars с правилами raymond (как в drone-telegram): поле д
 `add add1 sub mul div mod max min floor ceil round`,
 `trim trimAll trimPrefix trimSuffix upper lower title replace contains hasPrefix hasSuffix trunc abbrev substr repeat quote squote nospace indent nindent plural cat toString atoi int int64`,
 `default empty coalesce ternary`, `now date dateInZone unixEpoch ago`, `regexMatch regexFind regexReplaceAll`,
-`b64enc b64dec env expandenv`. Прочие функции sprig, вызванные с аргументами, завершают шаг ошибкой `helper "X" is not supported (sprig subset, see README)`; вызванные без аргументов (например `{{uuidv4}}`) — отображаются пустой строкой, так как Handlebars не отличает такой вызов от отсутствующего поля.
+`b64enc b64dec env expandenv`.
+Прочие функции sprig, вызванные с аргументами, завершают шаг ошибкой `helper "X" is not supported (sprig subset, see README)`; вызванные без аргументов (например `{{uuidv4}}`) — отображаются пустой строкой, так как Handlebars не отличает такой вызов от отсутствующего поля.
 
 Пример: `{{ div (sub build.finished build.started) 60 }} мин {{ mod (sub build.finished build.started) 60 }} с`.
 
 ### Разметка
 
 `markdown` — легаси-Markdown Bot API: `*жирный*`, `_курсив_`, `` `код` ``, ```` ```язык … ``` ````,
-`[текст](url)`. Как и в drone-telegram, `_` в тексте и в полях коммита экранируется, так что `_курсив_` не
-работает, зато имена веток вроде `fix_login` не ломают разметку. `html` — `<b>`, `<i>`, `<code>`, `<pre>`,
-`<a href>` и т.д.
+`[текст](url)`. Как и в drone-telegram, `_` в тексте и в полях коммита экранируется, так что `_курсив_` не работает, зато имена веток вроде `fix_login` не ломают разметку. `html` — `<b>`, `<i>`, `<code>`, `<pre>`, `<a href>` и т.д.
 
 ## tg-ws-proxy и дата-центры
 
 По умолчанию tg-ws-proxy пускает через WebSocket только DC2 и DC4 (`TG_WS_PROXY_DC_IPS="2:149.154.167.220 4:149.154.167.220"`),
-остальные DC идут через fallback (CfProxy или прямой TCP). Если бот живёт на другом DC и прямой доступ
-закрыт, добавьте его в `TG_WS_PROXY_DC_IPS` сервиса.
+остальные DC идут через fallback (CfProxy или прямой TCP). Если бот живёт на другом DC и прямой доступ закрыт, добавьте его в `TG_WS_PROXY_DC_IPS` сервиса.
 
 ## Отличия от drone-telegram
 
