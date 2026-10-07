@@ -166,6 +166,7 @@ Handlebars с правилами raymond (как в drone-telegram): поле д
 
 - [operations.md](docs/operations.md) — разбор ошибок, дата-центры tg-ws-proxy, режим `session`, чек-лист «уведомление не пришло»
 - [architecture.md](docs/architecture.md) — карта модулей, ключевые решения, как расширять
+- [migration-drone.md](docs/migration-drone.md) — перенос уведомлений с appleboy/drone-telegram на существующем пайплайне
 - [docs/](docs/) — индекс
 
 ## Разработка

@@ -4,6 +4,7 @@
 |---|---|---|
 | [../README.md](../README.md) | пользователь | установка, параметры, примеры для Drone и Gitea, шаблоны, отличия от drone-telegram |
 | [operations.md](operations.md) | эксплуатация | разбор всех сообщений об ошибках, дата-центры tg-ws-proxy, режим `session`, чек-лист «уведомление не пришло» |
+| [migration-drone.md](migration-drone.md) | эксплуатация | перенос уведомлений с appleboy/drone-telegram на существующем пайплайне: образы, секреты, правка `.drone.yml`, ловушка слияния `<<:` |
 | [architecture.md](architecture.md) | сопровождение | карта модулей, поток отправки, ключевые решения и их обоснование, как расширять, карта тестов |
 | [specs/2026-09-10-drone-telegram-mtproto-design.md](superpowers/specs/2026-09-10-drone-telegram-mtproto-design.md) | сопровождение | спецификация: что и почему решено до написания кода, включая таблицу отклонений от оригинала |
 
