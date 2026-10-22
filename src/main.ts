@@ -1,9 +1,11 @@
+import { stat } from "node:fs/promises";
+import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { errors } from "teleproto";
 import { loadCiContext } from "./ci-context.js";
 import { type Config, loadConfig, type Mode } from "./config.js";
 import { ConfigError, type Env } from "./env.js";
-import { type FormattedMessage, formatMessage } from "./format.js";
+import { type FormattedMessage, formatMessage, MAX_CAPTION_LENGTH } from "./format.js";
 import { parseTo } from "./recipients.js";
 import { makeRedactor, type Redactor } from "./redact.js";
 import { connectBot, createDeadline, type Deadline, type TelegramGateway, waitForPort } from "./telegram.js";
@@ -67,11 +69,15 @@ async function send(config: Config, deps: MainDeps, deadline: Deadline, state: R
   state.stage = "render";
   const ci = loadCiContext(deps.env);
   const rendered = await renderMessage(config, ci, deps.renderDeps);
-  if (rendered.text === "") {
+  const photo = config.photo === undefined ? undefined : await resolvePhoto(config.photo);
+  if (rendered.text === "" && photo === undefined) {
     deps.stdout("warning: message is empty, nothing to send");
     return 0;
   }
   const message: FormattedMessage = formatMessage(rendered.text, rendered.format);
+  if (photo !== undefined && message.text.length > MAX_CAPTION_LENGTH) {
+    throw new Error(`photo caption too long (${message.text.length} > ${MAX_CAPTION_LENGTH})`);
+  }
   const recipients = parseTo(config.to, ci.commit.Email, config.onlyMatchEmail, (warning) => deps.stdout(`warning: ${warning}`));
   if (recipients.length === 0) {
     deps.stdout("warning: no recipients left after filtering, nothing to send");
@@ -87,6 +93,7 @@ async function send(config: Config, deps: MainDeps, deadline: Deadline, state: R
         linkPreview: !config.disableWebPagePreview,
         silent: config.disableNotification,
         threadId: config.messageThreadId,
+        photo,
       });
       deps.stdout(`sent to ${peer} (message id ${id})`);
     } catch (error) {
@@ -95,6 +102,15 @@ async function send(config: Config, deps: MainDeps, deadline: Deadline, state: R
     }
   }
   return failed > 0 ? 1 : 0;
+}
+
+/** URLs are fetched by Telegram itself; local paths are resolved against the step's working directory. */
+async function resolvePhoto(photo: string): Promise<string> {
+  if (/^https?:\/\//i.test(photo)) return photo;
+  const path = resolve(photo);
+  const info = await stat(path).catch(() => undefined);
+  if (!info?.isFile()) throw new Error(`photo ${photo}: file not found`);
+  return path;
 }
 
 async function login(config: Config, deps: MainDeps, deadline: Deadline, state: RunState): Promise<TelegramGateway> {

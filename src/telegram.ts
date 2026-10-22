@@ -19,6 +19,8 @@ export interface SendOptions {
   linkPreview: boolean;
   silent: boolean;
   threadId?: number;
+  /** Absolute local path or http(s) URL; the text becomes its caption. */
+  photo?: string;
 }
 
 export interface TelegramGateway {
@@ -90,6 +92,17 @@ export async function connectBot(config: Config, deadline: Deadline): Promise<Te
   }
   return {
     async sendText(peer, message, options) {
+      if (options.photo !== undefined) {
+        const sent = await client.sendFile(toPeer(peer), {
+          file: options.photo,
+          caption: message.text,
+          formattingEntities: message.entities,
+          parseMode: false,
+          silent: options.silent,
+          replyTo: options.threadId,
+        });
+        return sent.id;
+      }
       const sent = await client.sendMessage(toPeer(peer), {
         message: message.text,
         formattingEntities: message.entities,

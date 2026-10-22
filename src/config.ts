@@ -26,6 +26,7 @@ export interface Config {
   templateVars?: string;
   templateVarsFile?: string;
   format: Format;
+  photo?: string;
   messageThreadId?: number;
   disableWebPagePreview: boolean;
   disableNotification: boolean;
@@ -38,7 +39,7 @@ export interface Config {
   timeoutSec: number;
 }
 
-const UNSUPPORTED = ["photo", "document", "sticker", "audio", "voice", "video", "location", "venue", "socks5"];
+const UNSUPPORTED = ["document", "sticker", "audio", "voice", "video", "location", "venue", "socks5"];
 const DEFAULT_PROXY_PORT = 1443;
 const DEFAULT_TIMEOUT_SEC = 60;
 
@@ -48,7 +49,7 @@ export function loadConfig(env: Env, mode: Mode = "send"): Config {
 
   for (const name of UNSUPPORTED) {
     const raw = get(name);
-    if (raw) throw new ConfigError(`${raw.key} is not supported: drone-telegram-mtproto v1 sends text messages only`);
+    if (raw) throw new ConfigError(`${raw.key} is not supported: drone-telegram-mtproto only text messages and a single photo are supported`);
   }
 
   const token = trimmed("token");
@@ -73,6 +74,7 @@ export function loadConfig(env: Env, mode: Mode = "send"): Config {
     templateVars: get("template_vars")?.value,
     templateVarsFile: trimmed("template_vars_file"),
     format: parseFormat(get("format")),
+    photo: trimmed("photo") || undefined,
     messageThreadId: parseInteger(get("message_thread_id")),
     disableWebPagePreview: parseBool(get("disable_web_page_preview")),
     disableNotification: parseBool(get("disable_notification")),

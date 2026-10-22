@@ -4,6 +4,7 @@ import type { Format } from "./config.js";
 import { type MdEntity, parseLegacyMarkdown } from "./markdown.js";
 
 export const MAX_MESSAGE_LENGTH = 4096;
+export const MAX_CAPTION_LENGTH = 1024;
 
 export interface FormattedMessage {
   text: string;

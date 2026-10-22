@@ -27,7 +27,9 @@ failed to send to <peer>: …                    этот получатель �
 | Сообщение | Причина | Что делать |
 |---|---|---|
 | `missing required settings: token, to, api_id, api_hash` | перечисленные параметры не заданы или пусты | задать их; в Drone проверьте, что секрет существует и доступен этой сборке |
-| `PLUGIN_PHOTO is not supported: drone-telegram-mtproto v1 sends text messages only` | задан параметр медиа (`photo`, `document`, `sticker`, `audio`, `voice`, `video`, `location`, `venue`) или `socks5` | убрать параметр: в v1 отправляется только текст |
+| `PLUGIN_DOCUMENT is not supported: only text messages and a single photo are supported` | задан параметр медиа (`document`, `sticker`, `audio`, `voice`, `video`, `location`, `venue`) или `socks5` | убрать параметр: поддерживаются только текст и `photo` |
+| `photo …: file not found` | файла `photo` нет в рабочей папке шага | проверить путь и что файл создан предыдущим шагом |
+| `photo caption too long (N > 1024)` | текст с `photo` длиннее лимита подписи | сократить сообщение |
 | `PLUGIN_FORMAT: format "MarkdownV2" is not supported, use markdown or html` | `format: MarkdownV2` | `markdown` или `html` |
 | `PLUGIN_FORMAT: invalid format "bbcode", expected markdown or html` | опечатка в `format` | исправить значение |
 | `PLUGIN_API_ID: invalid integer "abc"` | нечисловое значение там, где ждут число | исправить; пустое значение считается незаданным |

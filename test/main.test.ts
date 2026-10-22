@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { errors } from "teleproto";
 import { describe, expect, it, vi } from "vitest";
 import type { Config } from "../src/config.js";
@@ -74,6 +75,36 @@ describe("run (send)", () => {
     const { deps } = setup({ ...baseEnv, PLUGIN_PROXY_HOST: "tg-ws-proxy", PLUGIN_PROXY_SECRET: HEX }, gateway);
     expect(await run([], deps)).toBe(0);
     expect(deps.waitForPort).toHaveBeenCalledWith("tg-ws-proxy", 1443, expect.objectContaining({ timeoutSec: 60 }));
+  });
+
+  it("sends a URL photo with the message as caption", async () => {
+    const { gateway, sent } = fakeGateway();
+    const { deps } = setup({ ...baseEnv, PLUGIN_PHOTO: "https://example.com/a.png" }, gateway);
+    expect(await run([], deps)).toBe(0);
+    expect(sent[0]?.options.photo).toBe("https://example.com/a.png");
+    expect(sent[0]?.text).toBe("hi 42");
+  });
+
+  it("resolves a local photo path and sends it without a caption when the message is empty", async () => {
+    const { gateway, sent } = fakeGateway();
+    const { deps } = setup({ ...baseEnv, PLUGIN_MESSAGE: " ", PLUGIN_PHOTO: "package.json" }, gateway);
+    expect(await run([], deps)).toBe(0);
+    expect(sent[0]?.options.photo).toBe(resolve("package.json"));
+  });
+
+  it("fails before login when the local photo is missing", async () => {
+    const { gateway } = fakeGateway();
+    const { deps, err } = setup({ ...baseEnv, PLUGIN_PHOTO: "nope.png" }, gateway);
+    expect(await run([], deps)).toBe(1);
+    expect(err).toEqual(["error: photo nope.png: file not found"]);
+    expect(deps.connect).not.toHaveBeenCalled();
+  });
+
+  it("rejects captions over the photo limit", async () => {
+    const { gateway } = fakeGateway();
+    const { deps, err } = setup({ ...baseEnv, PLUGIN_MESSAGE: "x".repeat(1025), PLUGIN_PHOTO: "https://e.com/a.png" }, gateway);
+    expect(await run([], deps)).toBe(1);
+    expect(err[0]).toContain("photo caption too long (1025 > 1024)");
   });
 
   it("passes thread, preview and notification options", async () => {

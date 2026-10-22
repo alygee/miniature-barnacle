@@ -84,7 +84,7 @@ describe("loadConfig", () => {
     expect(() => loadConfig({ ...base, PLUGIN_FORMAT: "bbcode" })).toThrow('invalid format "bbcode"');
   });
 
-  it.each(["PHOTO", "DOCUMENT", "STICKER", "AUDIO", "VOICE", "VIDEO", "LOCATION", "VENUE", "SOCKS5"])(
+  it.each(["DOCUMENT", "STICKER", "AUDIO", "VOICE", "VIDEO", "LOCATION", "VENUE", "SOCKS5"])(
     "rejects unsupported PLUGIN_%s",
     (name) => {
       expect(() => loadConfig({ ...base, [`PLUGIN_${name}`]: "x" })).toThrow(`PLUGIN_${name} is not supported`);
